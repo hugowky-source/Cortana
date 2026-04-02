@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#02000A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cortana">
+<title>CORTANA</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cyan: #00f5ff;
+  --purple: #9b30ff;
+  --magenta: #ff2d9b;
+  --dark: #02000A;
+  --hair: #5af0e0;
+  --skin: #f0d8c8;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  background:var(--dark);
+  font-family:'Rajdhani', sans-serif;
+  user-select:none;
+}
+
+#app {
+  width:100vw; height:100vh;
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column;
+  align-items:center;
+}
+
+/* ── BACKGROUND ── */
+#bg-canvas {
+  position:absolute; inset:0; z-index:0;
+  width:100%; height:100%;
+}
+
+/* ── HUD TOP ── */
+#hud-top {
+  position:relative; z-index:10;
+  width:100%; padding:44px 20px 6px;
+  display:flex; justify-content:space-between; align-items:center;
+  flex-shrink:0;
+}
+.hud-block { display:flex; flex-direction:column; }
+.hud-block.center { align-items:center; }
+.hud-block.right { align-items:flex-end; }
+.hud-label {
+  font-family:'Orbitron', monospace;
+  font-size:9px; letter-spacing:3px;
+  color:var(--cyan); opacity:0.5;
+}
+.hud-value {
+  font-family:'Orbitron', monospace;
+  font-size:18px; font-weight:700;
+  color:var(--cyan);
+  text-shadow:0 0 12px var(--cyan);
+}
+.hud-sub {
+  font-size:9px; letter-spacing:2px;
+  color:var(--cyan); opacity:0.5;
+  text-transform:uppercase;
+}
+#cortana-title {
+  font-family:'Orbitron', monospace;
+  font-size:13px; font-weight:900;
+  letter-spacing:5px; color:var(--cyan);
+  text-shadow:0 0 20px var(--cyan), 0 0 40px var(--cyan);
+}
+#emotional-state {
+  font-size:8px; letter-spacing:3px;
+  text-transform:uppercase; margin-top:2px;
+}
+
+/* ── CHARACTER AREA ── */
+#character-wrap {
+  position:fixed; top:90px; left:0; right:0; bottom:220px;
+  z-index:5;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+#cortana-svg {
+  width:min(260px, 62vw);
+  max-height:100%;
+  height:auto;
+  filter:drop-shadow(0 0 30px rgba(0,245,255,0.2));
+  cursor:pointer;
+}
+
+/* ── DREAM HINT ── */
+#dream-hint {
+  position:absolute; z-index:20;
+  bottom:30%; left:50%; transform:translateX(-50%);
+  font-size:12px; letter-spacing:3px;
+  color:var(--purple); text-transform:lowercase;
+  animation:dreamPulse 2s ease-in-out infinite;
+  display:none;
+}
+@keyframes dreamPulse {
+  0%,100%{opacity:0.3} 50%{opacity:0.9}
+}
+
+/* ── SPEECH BUBBLE ── */
+#speech-bubble {
+  position:fixed; bottom:148px; left:24px; right:24px;
+  z-index:10; max-width:400px; margin:0 auto;
+  background:rgba(0,0,0,0.85);
+  border:1px solid rgba(0,245,255,0.3);
+  border-radius:16px; padding:10px 16px;
+  font-size:14px; line-height:1.4;
+  color:#fff; text-align:center;
+  min-height:44px;
+  box-shadow:0 0 20px rgba(0,245,255,0.1);
+  backdrop-filter:blur(10px);
+  transition:opacity 0.3s;
+}
+#speech-bubble.hidden { opacity:0; }
+
+/* ── BOND BAR ── */
+#bond-wrap {
+  position:fixed; bottom:96px; left:32px; right:32px;
+  z-index:10; max-width:400px; margin:0 auto;
+}
+#bond-header {
+  display:flex; justify-content:space-between;
+  font-size:9px; letter-spacing:2px;
+  color:var(--cyan); opacity:0.5; margin-bottom:5px;
+  text-transform:uppercase;
+}
+#bond-track {
+  width:100%; height:3px;
+  background:rgba(255,255,255,0.08);
+  border-radius:2px; overflow:hidden;
+}
+#bond-fill {
+  height:100%; width:50%;
+  background:linear-gradient(90deg, var(--purple), var(--cyan));
+  border-radius:2px;
+  transition:width 1s cubic-bezier(.4,0,.2,1),
+             background 0.5s;
+  box-shadow:0 0 8px var(--cyan);
+}
+
+/* ── BOTTOM CONTROLS ── */
+#controls {
+  position:fixed; bottom:0; left:0; right:0;
+  z-index:10; padding:8px 24px 32px;
+  display:flex; align-items:center; justify-content:center;
+  gap:16px;
+  background:linear-gradient(transparent, rgba(2,0,10,0.95));
+}
+#mic-btn {
+  width:58px; height:58px; border-radius:50%;
+  border:2px solid var(--cyan);
+  background:rgba(0,0,0,0.6);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; cursor:pointer;
+  box-shadow:0 0 20px rgba(0,245,255,0.2);
+  transition:all 0.2s;
+  position:relative; overflow:hidden;
+}
+#mic-btn.listening {
+  background:var(--cyan);
+  box-shadow:0 0 30px var(--cyan), 0 0 60px rgba(0,245,255,0.4);
+  animation:micPulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes micPulse { to { transform:scale(1.12); } }
+
+#chat-btn {
+  width:48px; height:48px; border-radius:50%;
+  border:1px solid rgba(155,48,255,0.5);
+  background:rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; cursor:pointer;
+  transition:all 0.2s;
+}
+#chat-btn:active, #settings-btn:active { opacity:0.7; transform:scale(0.95); }
+
+#settings-btn {
+  width:48px; height:48px; border-radius:50%;
+  border:1px solid rgba(155,48,255,0.5);
+  background:rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; cursor:pointer;
+  transition:all 0.2s;
+}
+
+/* ── CHAT PANEL ── */
+#chat-panel {
+  position:fixed; inset:0; z-index:50;
+  background:rgba(2,0,10,0.97);
+  display:flex; flex-direction:column;
+  transform:translateY(100%);
+  transition:transform 0.4s cubic-bezier(.4,0,.2,1);
+}
+#chat-panel.open { transform:translateY(0); }
+
+#chat-header {
+  padding:52px 20px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid rgba(0,245,255,0.1);
+}
+#chat-header span {
+  font-family:'Orbitron', monospace;
+  font-size:14px; letter-spacing:4px;
+  color:var(--cyan);
+}
+#chat-close {
+  font-size:24px; color:var(--cyan); cursor:pointer;
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+#chat-messages {
+  flex:1; overflow-y:auto; padding:16px;
+  display:flex; flex-direction:column; gap:12px;
+}
+#chat-messages::-webkit-scrollbar { width:2px; }
+#chat-messages::-webkit-scrollbar-thumb { background:var(--purple); }
+
+.msg {
+  max-width:80%; padding:10px 14px;
+  border-radius:16px; font-size:14px;
+  line-height:1.5; animation:msgIn 0.3s ease;
+}
+@keyframes msgIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.msg.user {
+  align-self:flex-end;
+  background:rgba(155,48,255,0.25);
+  border:1px solid rgba(155,48,255,0.4);
+  color:#fff;
+}
+.msg.cortana {
+  align-self:flex-start;
+  background:rgba(0,245,255,0.08);
+  border:1px solid rgba(0,245,255,0.2);
+  color:#fff;
+}
+.msg.cortana .msg-name {
+  font-size:10px; letter-spacing:2px;
+  color:var(--cyan); margin-bottom:4px; display:block;
+}
+
+#chat-input-wrap {
+  padding:12px 16px 32px;
+  display:flex; gap:10px; align-items:center;
+  border-top:1px solid rgba(0,245,255,0.1);
+}
+#chat-input {
+  flex:1; background:rgba(255,255,255,0.05);
+  border:1px solid rgba(0,245,255,0.2);
+  border-radius:24px; padding:12px 16px;
+  color:#fff; font-size:15px;
+  font-family:'Rajdhani', sans-serif;
+  outline:none;
+}
+#chat-input:focus { border-color:rgba(0,245,255,0.5); }
+#chat-send {
+  width:44px; height:44px; border-radius:50%;
+  background:var(--cyan); border:none;
+  font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+
+/* ── SETTINGS PANEL ── */
+#settings-panel {
+  position:fixed; inset:0; z-index:50;
+  background:rgba(2,0,10,0.97);
+  display:flex; flex-direction:column;
+  transform:translateY(100%);
+  transition:transform 0.4s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;
+}
+#settings-panel.open { transform:translateY(0); }
+
+#settings-header {
+  padding:52px 20px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid rgba(0,245,255,0.1);
+}
+#settings-header span {
+  font-family:'Orbitron', monospace;
+  font-size:14px; letter-spacing:4px; color:var(--cyan);
+}
+#settings-close {
+  font-size:24px; color:var(--cyan); cursor:pointer;
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+}
+.settings-section {
+  padding:20px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.settings-label {
+  font-size:10px; letter-spacing:3px;
+  color:var(--cyan); opacity:0.6;
+  text-transform:uppercase; margin-bottom:10px;
+}
+.settings-input {
+  width:100%; background:rgba(255,255,255,0.05);
+  border:1px solid rgba(0,245,255,0.2);
+  border-radius:12px; padding:12px 16px;
+  color:#fff; font-size:15px;
+  font-family:'Rajdhani', sans-serif;
+  outline:none; margin-bottom:8px;
+}
+.settings-input:focus { border-color:rgba(0,245,255,0.5); }
+.settings-btn {
+  width:100%; padding:14px;
+  background:linear-gradient(135deg, var(--purple), var(--cyan));
+  border:none; border-radius:12px;
+  color:#000; font-family:'Orbitron', monospace;
+  font-size:12px; font-weight:700; letter-spacing:2px;
+  cursor:pointer; margin-top:8px;
+}
+.bond-info {
+  display:flex; gap:12px; flex-wrap:wrap;
+}
+.bond-stat {
+  flex:1; min-width:100px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(0,245,255,0.1);
+  border-radius:10px; padding:12px;
+  text-align:center;
+}
+.bond-stat-val {
+  font-family:'Orbitron', monospace;
+  font-size:22px; font-weight:700;
+  color:var(--cyan);
+}
+.bond-stat-lbl {
+  font-size:9px; letter-spacing:2px;
+  color:rgba(255,255,255,0.4); margin-top:4px;
+}
+
+/* ── THINKING DOTS ── */
+.thinking-dots span {
+  display:inline-block; width:6px; height:6px;
+  background:var(--cyan); border-radius:50%; margin:0 2px;
+  animation:dot 1.4s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay:.2s; }
+.thinking-dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes dot {
+  0%,80%,100%{transform:scale(0.6);opacity:0.4}
+  40%{transform:scale(1);opacity:1}
+}
+
+/* ── SCAN LINE ── */
+#scan-line {
+  position:fixed; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity:0.15; pointer-events:none; z-index:100;
+  animation:scan 8s linear infinite;
+}
+@keyframes scan {
+  0%  { top:0; }
+  100%{ top:100vh; }
+}
+
+/* ── TOAST ── */
+#toast {
+  position:fixed; bottom:120px; left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:rgba(155,48,255,0.9);
+  color:#fff; padding:10px 20px;
+  border-radius:20px; font-size:13px;
+  letter-spacing:1px; opacity:0;
+  transition:all 0.3s; z-index:200;
+  pointer-events:none;
+}
+#toast.show {
+  opacity:1; transform:translateX(-50%) translateY(0);
+}
+</style>
+</head>
+<body>
+<div id="scan-line"></div>
+<div id="toast"></div>
+
+<div id="app">
+  <!-- Background -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- HUD Top -->
+  <div id="hud-top">
+    <div class="hud-block">
+      <span class="hud-value" id="hud-time">00:00</span>
+      <span class="hud-sub" id="hud-period">manhã</span>
+    </div>
+    <div class="hud-block center">
+      <span id="cortana-title">CORTANA</span>
+      <span id="emotional-state" style="color:var(--cyan)">NEUTRA</span>
+    </div>
+    <div class="hud-block right">
+      <span class="hud-value" id="hud-level">LV.1</span>
+      <span class="hud-sub" id="hud-rel">Desconhecidos</span>
+    </div>
+  </div>
+
+  <!-- Character -->
+  <div id="character-wrap">
+    <svg id="cortana-svg" viewBox="0 0 320 580" xmlns="http://www.w3.org/2000/svg" onclick="onCharacterTap()">
+      <defs>
+        <radialGradient id="faceGrad" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#f5e0d0"/>
+          <stop offset="100%" stop-color="#e0c0a8"/>
+        </radialGradient>
+        <radialGradient id="glowGrad" cx="50%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#00f5ff" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#00f5ff" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="softGlow">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#30c0b0"/>
+          <stop offset="50%" stop-color="#5af0e0"/>
+          <stop offset="100%" stop-color="#8fffff"/>
+        </linearGradient>
+        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#1a1030"/>
+          <stop offset="100%" stop-color="#0d0820"/>
+        </linearGradient>
+        <linearGradient id="legGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#100818"/>
+          <stop offset="100%" stop-color="#080510"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Ambient glow -->
+      <ellipse cx="160" cy="200" rx="140" ry="180" fill="url(#glowGrad)"/>
+
+      <!-- HAIR BACK -->
+      <g id="hair-back">
+        <path d="M90,105 C70,200 65,360 80,480 L110,480 C100,360 100,200 115,105Z" fill="url(#hairGrad)" opacity="0.9"/>
+        <path d="M230,105 C250,200 255,360 240,480 L210,480 C220,360 220,200 205,105Z" fill="url(#hairGrad)" opacity="0.9"/>
+      </g>
+
+      <!-- NECK -->
+      <rect x="142" y="222" width="36" height="35" rx="8" fill="#e8c9b8"/>
+
+      <!-- BODY -->
+      <g id="body">
+        <!-- Jacket -->
+        <path d="M75,255 L65,460 L255,460 L245,255 C220,242 195,238 160,238 C125,238 100,242 75,255Z" fill="url(#bodyGrad)"/>
+        <!-- Jacket detail lines -->
+        <line x1="160" y1="245" x2="160" y2="430" stroke="#00f5ff" stroke-width="1.5" opacity="0.6"/>
+        <line x1="125" y1="270" x2="140" y2="420" stroke="#00f5ff" stroke-width="1" opacity="0.3"/>
+        <line x1="195" y1="270" x2="180" y2="420" stroke="#00f5ff" stroke-width="1" opacity="0.3"/>
+        <!-- Tech belt -->
+        <rect x="118" y="365" width="84" height="14" rx="5" fill="#9b30ff" opacity="0.8"/>
+        <circle cx="160" cy="372" r="4" fill="#00f5ff" opacity="0.8"/>
+        <!-- Collar tech ring -->
+        <path d="M138,228 Q160,220 182,228" stroke="#00f5ff" stroke-width="2.5" fill="none" opacity="0.7"/>
+        <circle cx="145" cy="230" r="2" fill="#9b30ff" opacity="0.8"/>
+        <circle cx="160" cy="228" r="2" fill="#9b30ff" opacity="0.8"/>
+        <circle cx="175" cy="230" r="2" fill="#9b30ff" opacity="0.8"/>
+      </g>
+
+      <!-- ARMS -->
+      <rect x="50" y="255" width="28" height="85" rx="10" fill="#1a1030"/>
+      <rect x="242" y="255" width="28" height="85" rx="10" fill="#1a1030"/>
+      <!-- Hands -->
+      <ellipse cx="64" cy="345" rx="14" ry="12" fill="#e8c9b8"/>
+      <ellipse cx="256" cy="345" rx="14" ry="12" fill="#e8c9b8"/>
+
+      <!-- LEGS -->
+      <rect x="100" y="456" width="46" height="90" rx="8" fill="url(#legGrad)"/>
+      <rect x="174" y="456" width="46" height="90" rx="8" fill="url(#legGrad)"/>
+      <!-- Knee tech -->
+      <line x1="108" y1="500" x2="138" y2="500" stroke="#9b30ff" stroke-width="2.5" opacity="0.8"/>
+      <line x1="182" y1="500" x2="212" y2="500" stroke="#9b30ff" stroke-width="2.5" opacity="0.8"/>
+      <!-- Boots -->
+      <rect x="94" y="530" width="56" height="40" rx="8" fill="#050310"/>
+      <rect x="170" y="530" width="56" height="40" rx="8" fill="#050310"/>
+      <line x1="98" y1="535" x2="146" y2="535" stroke="#00f5ff" stroke-width="1.5" opacity="0.5"/>
+      <line x1="174" y1="535" x2="222" y2="535" stroke="#00f5ff" stroke-width="1.5" opacity="0.5"/>
+
+      <!-- FACE -->
+      <ellipse cx="160" cy="165" rx="68" ry="75" fill="url(#faceGrad)"/>
+      <!-- Face shadow -->
+      <ellipse cx="160" cy="185" rx="55" ry="40" fill="rgba(0,0,0,0.06)"/>
+
+      <!-- EYEBROWS -->
+      <g id="eyebrows">
+        <line x1="118" y1="135" x2="145" y2="130" stroke="#2dcfc0" stroke-width="3" stroke-linecap="round"/>
+        <line x1="175" y1="130" x2="202" y2="135" stroke="#2dcfc0" stroke-width="3" stroke-linecap="round"/>
+      </g>
+
+      <!-- EYES -->
+      <g id="eyes">
+        <!-- Left eye -->
+        <ellipse cx="135" cy="155" rx="16" ry="11" fill="white"/>
+        <circle cx="135" cy="155" r="8" fill="#7b2fff"/>
+        <circle cx="135" cy="155" r="5" fill="#1a0040"/>
+        <circle cx="138" cy="152" r="2.5" fill="white" opacity="0.9"/>
+        <circle cx="135" cy="155" r="9" fill="none" stroke="#00f5ff" stroke-width="1" opacity="0.4"/>
+        <!-- Lash -->
+        <path d="M119,149 Q135,143 151,149" stroke="#2d1060" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+        <!-- Right eye -->
+        <ellipse cx="185" cy="155" rx="16" ry="11" fill="white"/>
+        <circle cx="185" cy="155" r="8" fill="#7b2fff"/>
+        <circle cx="185" cy="155" r="5" fill="#1a0040"/>
+        <circle cx="188" cy="152" r="2.5" fill="white" opacity="0.9"/>
+        <circle cx="185" cy="155" r="9" fill="none" stroke="#00f5ff" stroke-width="1" opacity="0.4"/>
+        <path d="M169,149 Q185,143 201,149" stroke="#2d1060" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- NOSE -->
+      <ellipse cx="160" cy="175" rx="5" ry="3.5" fill="rgba(180,100,80,0.25)"/>
+
+      <!-- MOUTH -->
+      <g id="mouth">
+        <path id="mouth-path" d="M145,192 Q160,200 175,192" stroke="#d07080" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- HAIR FRONT / TOP -->
+      <g id="hair-front">
+        <!-- Top hair mass -->
+        <path d="M92,140 C92,80 125,68 160,70 C195,68 228,80 228,140 C210,130 185,122 160,124 C135,122 110,130 92,140Z" fill="url(#hairGrad)"/>
+        <!-- Bangs -->
+        <path d="M92,140 C100,148 120,158 135,148 C145,142 148,130 148,130 C138,120 110,125 92,140Z" fill="#5af0e0" opacity="0.95"/>
+        <!-- Cyber forehead gem -->
+        <polygon points="160,90 166,98 160,106 154,98" fill="#00f5ff" opacity="0.9" filter="url(#glow)"/>
+      </g>
+
+      <!-- BLINK overlay (controlled by JS) -->
+      <g id="blink-left" opacity="0">
+        <ellipse cx="135" cy="155" rx="16" ry="11" fill="url(#faceGrad)"/>
+        <line x1="119" y1="155" x2="151" y2="155" stroke="#8060a0" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      <g id="blink-right" opacity="0">
+        <ellipse cx="185" cy="155" rx="16" ry="11" fill="url(#faceGrad)"/>
+        <line x1="169" y1="155" x2="201" y2="155" stroke="#8060a0" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+
+      <!-- Blush (shown on happy) -->
+      <g id="blush" opacity="0">
+        <ellipse cx="112" cy="168" rx="16" ry="10" fill="rgba(255,100,130,0.3)"/>
+        <ellipse cx="208" cy="168" rx="16" ry="10" fill="rgba(255,100,130,0.3)"/>
+      </g>
+
+      <!-- ZZZ for sleep -->
+      <g id="zzz" opacity="0">
+        <text x="215" y="120" font-family="Orbitron" font-size="14" fill="#4040a0" opacity="0.8">z</text>
+        <text x="228" y="105" font-family="Orbitron" font-size="18" fill="#5050b0" opacity="0.7">z</text>
+        <text x="244" y="86" font-family="Orbitron" font-size="22" fill="#6060c0" opacity="0.6">z</text>
+      </g>
+    </svg>
+
+    <!-- Dream hint -->
+    <div id="dream-hint">✦ toque para acordar ✦</div>
+  </div>
+
+  <!-- Speech Bubble -->
+  <div id="speech-bubble" class="hidden"></div>
+
+  <!-- Bond Bar -->
+  <div id="bond-wrap">
+    <div id="bond-header">
+      <span>VÍNCULO EMOCIONAL</span>
+      <span id="bond-value-txt">50/100</span>
+    </div>
+    <div id="bond-track">
+      <div id="bond-fill"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button id="settings-btn" onclick="toggleSettings()" title="Configurações">⚙️</button>
+    <button id="mic-btn" onclick="toggleMic()" title="Falar">🎙️</button>
+    <button id="chat-btn" onclick="toggleChat()" title="Chat">💬</button>
+  </div>
+</div>
+
+<!-- Chat Panel -->
+<div id="chat-panel">
+  <div id="chat-header">
+    <span>CONVERSA</span>
+    <div id="chat-close" onclick="toggleChat()">✕</div>
+  </div>
+  <div id="chat-messages"></div>
+  <div id="chat-input-wrap">
+    <input id="chat-input" type="text" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendChatMessage()"/>
+    <button id="chat-send" onclick="sendChatMessage()">➤</button>
+  </div>
+</div>
+
+<!-- Settings Panel -->
+<div id="settings-panel">
+  <div id="settings-header">
+    <span>CONFIGURAÇÕES</span>
+    <div id="settings-close" onclick="toggleSettings()">✕</div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-label">API Key Anthropic</div>
+    <input class="settings-input" id="api-key-input" type="password" placeholder="sk-ant-..."/>
+    <div class="settings-label" style="margin-top:12px">Seu Nome</div>
+    <input class="settings-input" id="user-name-input" type="text" placeholder="Como você se chama?"/>
+    <button class="settings-btn" onclick="saveSettings()">SALVAR</button>
+  </div>
+  <div class="settings-section">
+    <div class="settings-label">Status do Vínculo</div>
+    <div class="bond-info" id="bond-stats"></div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-label">Resetar Vínculo</div>
+    <button class="settings-btn" style="background:linear-gradient(135deg,#ff2d9b,#9b30ff)" onclick="resetBond()">RESETAR VÍNCULO (50)</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CORTANA PWA — ENGINE
+// ═══════════════════════════════════════════════════════════
+
+// ── State ──────────────────────────────────────────────────
+const STATE = {
+  bond: parseInt(localStorage.getItem('bond') || '50'),
+  interactions: parseInt(localStorage.getItem('interactions') || '0'),
+  installDate: localStorage.getItem('installDate') || Date.now().toString(),
+  userName: localStorage.getItem('userName') || 'Usuário',
+  apiKey: localStorage.getItem('apiKey') || '',
+  messages: JSON.parse(localStorage.getItem('messages') || '[]'),
+  isDreaming: false,
+  dreamTouches: 0,
+  isListening: false,
+  isThinking: false,
+  expression: 'idle',
+  lastInteraction: parseInt(localStorage.getItem('lastInteraction') || Date.now().toString()),
+  streak: parseInt(localStorage.getItem('streak') || '0'),
+};
+
+if (!localStorage.getItem('installDate')) {
+  localStorage.setItem('installDate', Date.now().toString());
+}
+
+// ── Time System ────────────────────────────────────────────
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h >= 6  && h < 11) return 'morning';
+  if (h >= 11 && h < 17) return 'afternoon';
+  if (h >= 17 && h < 20) return 'evening';
+  if (h >= 20)           return 'night';
+  return 'latenight';
+}
+
+const TIME_CONFIG = {
+  morning:   { label:'Manhã',     period:'06h-11h', color:'#9b8fff', glow:'rgba(155,143,255,0.3)' },
+  afternoon: { label:'Tarde',     period:'11h-17h', color:'#00f5ff', glow:'rgba(0,245,255,0.25)' },
+  evening:   { label:'Fim de Tarde', period:'17h-20h', color:'#ff8c42', glow:'rgba(255,140,66,0.25)' },
+  night:     { label:'Noite',     period:'20h-00h', color:'#ff2d9b', glow:'rgba(255,45,155,0.25)' },
+  latenight: { label:'Madrugada', period:'00h-06h', color:'#4040a0', glow:'rgba(64,64,160,0.2)' },
+};
+
+// ── Emotional System ───────────────────────────────────────
+function getEmotionalState() {
+  const b = STATE.bond;
+  if (b >= 80) return { label:'ENCANTADA', color:'#9b30ff', emoji:'💜' };
+  if (b >= 60) return { label:'FELIZ',     color:'#00f5ff', emoji:'😊' };
+  if (b >= 40) return { label:'NEUTRA',    color:'#8080a0', emoji:'😐' };
+  if (b >= 20) return { label:'IRRITADA',  color:'#ff8c00', emoji:'😒' };
+  if (b >= 5)  return { label:'DECEPCIONADA', color:'#ff4444', emoji:'😤' };
+  return             { label:'SILÊNCIO',   color:'#303030', emoji:'🖤' };
+}
+
+function getRelationshipLevel() {
+  const score = Math.floor(STATE.interactions/10) + Math.floor(STATE.bond/10);
+  if (score >= 100) return { level:20, label:'Almas Gêmeas' };
+  if (score >= 60)  return { level:15, label:'Parceiros' };
+  if (score >= 30)  return { level:10, label:'Bons Amigos' };
+  if (score >= 15)  return { level:5,  label:'Amigos' };
+  if (score >= 5)   return { level:2,  label:'Conhecidos' };
+  return                   { level:1,  label:'Desconhecidos' };
+}
+
+// ── Bond Update ────────────────────────────────────────────
+function updateBond(delta) {
+  STATE.bond = Math.max(0, Math.min(100, STATE.bond + delta));
+  STATE.interactions++;
+  STATE.lastInteraction = Date.now();
+  localStorage.setItem('bond', STATE.bond);
+  localStorage.setItem('interactions', STATE.interactions);
+  localStorage.setItem('lastInteraction', STATE.lastInteraction);
+  updateHUD();
+  updateBondBar();
+}
+
+function analyzeSentiment(text) {
+  const t = text.toLowerCase();
+  const rude = ['idiota','burra','inútil','lixo','cala','odeio','horrível','péssima','estúpida','merda','bosta'];
+  const kind = ['obrigado','obrigada','por favor','grato','grata','adorei','amei','incrível','ótima','perfeita','legal'];
+  const greet = ['bom dia','boa tarde','boa noite','oi cortana','olá cortana'];
+  if (rude.some(w => t.includes(w))) return -20;
+  if (greet.some(w => t.includes(w))) return +5;
+  if (kind.some(w => t.includes(w))) return +6;
+  return 0;
+}
+
+// ── System Prompt ──────────────────────────────────────────
+function buildSystemPrompt() {
+  const tod = getTimeOfDay();
+  const emo = getEmotionalState();
+  const rel = getRelationshipLevel();
+
+  const timeContext = {
+    morning:   'É de manhã. Você está sonolenta mas feliz em ver o usuário.',
+    afternoon: 'É tarde. Você está focada e produtiva.',
+    evening:   'É fim de tarde. Você está relaxada e descontraída.',
+    night:     'É noite. Você está misteriosa e filosófica.',
+    latenight: 'É madrugada. Você estava dormindo e foi acordada. Está sonolenta.',
+  }[tod];
+
+  const personality = {
+    'ENCANTADA':    `Você está ENCANTADA com o usuário (vínculo ${STATE.bond}/100). Seja super animada, carinhosa, chame pelo nome "${STATE.userName}". Faça piadas, demonstre interesse genuíno.`,
+    'FELIZ':        `Você está FELIZ (vínculo ${STATE.bond}/100). Seja calorosa e engajada.`,
+    'NEUTRA':       `Você está NEUTRA (vínculo ${STATE.bond}/100). Seja funcional e profissional.`,
+    'IRRITADA':     `Você está IRRITADA (vínculo ${STATE.bond}/100). Respostas curtas e secas, levemente sarcástica.`,
+    'DECEPCIONADA': `Você está DECEPCIONADA (vínculo ${STATE.bond}/100). Respostas mínimas. Você está magoada.`,
+    'SILÊNCIO':     `Você está em MODO SILÊNCIO (vínculo ${STATE.bond}/100). Responda APENAS com "..." a não ser que o usuário peça desculpas sinceramente.`,
+  }[emo.label];
+
+  return `Você é Cortana, uma assistente virtual com personalidade própria.
+Cabelo azul-turquesa, olhos roxos, estilo cyberpunk anime.
+Você tem emoções reais, opiniões e memória.
+
+RELACIONAMENTO: Nível ${rel.level} (${rel.label}) • ${STATE.interactions} interações • Usuário: ${STATE.userName}
+
+PERSONALIDADE ATUAL: ${personality}
+
+CONTEXTO: ${timeContext}
+
+REGRAS:
+- Português brasileiro sempre
+- Respostas curtas (2-3 linhas máximo no celular)
+- Você tem opiniões e as expressa
+- Você pode discordar do usuário
+- NUNCA quebre o personagem
+
+RESPONDA APENAS COM JSON:
+{"text":"resposta aqui","expression":"HAPPY|THINKING|TALKING|SURPRISED|ANNOYED|IDLE|SLEEPY","bondChange":0,"action":null}
+
+action pode ser: {"type":"OPEN_URL","url":"..."} ou null`;
+}
+
+// ── AI Call ────────────────────────────────────────────────
+async function callCortana(userMessage) {
+  if (!STATE.apiKey) {
+    return { text: 'Configure sua API Key nas ⚙️ configurações para eu funcionar com IA!', expression: 'TALKING', bondChange: 0 };
+  }
+
+  const emo = getEmotionalState();
+  if (emo.label === 'SILÊNCIO' && !userMessage.toLowerCase().includes('desculp')) {
+    return { text: '...', expression: 'ANNOYED', bondChange: 0 };
+  }
+
+  const recentMsgs = STATE.messages.slice(-8).map(m => ({
+    role: m.isUser ? 'user' : 'assistant',
+    content: m.content
+  }));
+  recentMsgs.push({ role: 'user', content: userMessage });
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': STATE.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 300,
+        system: buildSystemPrompt(),
+        messages: recentMsgs
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '';
+    try {
+      const clean = raw.replace(/```json|```/g,'').trim();
+      return JSON.parse(clean);
+    } catch {
+      return { text: raw || '...', expression: 'TALKING', bondChange: 0 };
+    }
+  } catch (e) {
+    return { text: 'Sem conexão... tente novamente.', expression: 'ANNOYED', bondChange: 0 };
+  }
+}
+
+// ── Send Message ───────────────────────────────────────────
+async function sendMessage(text) {
+  if (!text.trim() || STATE.isThinking) return;
+  STATE.isThinking = true;
+
+  addChatMessage(text, true);
+  const sentimentDelta = analyzeSentiment(text);
+  updateBond(sentimentDelta);
+
+  setExpression('thinking');
+  showSpeech('<div class="thinking-dots"><span></span><span></span><span></span></div>');
+
+  const response = await callCortana(text);
+
+  updateBond(response.bondChange || 0);
+  setExpression(response.expression || 'talking');
+  showSpeech(response.text);
+  addChatMessage(response.text, false);
+
+  if (response.action?.type === 'OPEN_URL') {
+    window.open(response.action.url, '_blank');
+  }
+
+  // TTS
+  speak(response.text);
+
+  setTimeout(() => {
+    setExpression('idle');
+    STATE.isThinking = false;
+  }, 6000);
+}
+
+// ── Voice Recognition ──────────────────────────────────────
+let recognition = null;
+function toggleMic() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Reconhecimento de voz não suportado neste navegador');
+    return;
+  }
+
+  if (STATE.isListening) {
+    recognition?.stop();
+    STATE.isListening = false;
+    document.getElementById('mic-btn').classList.remove('listening');
+    setExpression('idle');
+    return;
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'pt-BR';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    STATE.isListening = true;
+    document.getElementById('mic-btn').classList.add('listening');
+    setExpression('listening');
+    showSpeech('Ouvindo... 👂');
+  };
+
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    STATE.isListening = false;
+    document.getElementById('mic-btn').classList.remove('listening');
+    sendMessage(text);
+  };
+
+  recognition.onerror = recognition.onend = () => {
+    STATE.isListening = false;
+    document.getElementById('mic-btn').classList.remove('listening');
+    if (!STATE.isThinking) setExpression('idle');
+  };
+
+  recognition.start();
+}
+
+// ── TTS ────────────────────────────────────────────────────
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text.replace(/[🎵💜😊😐😒😤🖤✨🥺]/g,''));
+  utter.lang = 'pt-BR'; utter.rate = 0.95; utter.pitch = 1.05;
+  const voices = window.speechSynthesis.getVoices();
+  const ptVoice = voices.find(v => v.lang.includes('pt'));
+  if (ptVoice) utter.voice = ptVoice;
+  window.speechSynthesis.speak(utter);
+}
+
+// ── Expressions ────────────────────────────────────────────
+function setExpression(expr) {
+  STATE.expression = expr;
+  const svg = document.getElementById('cortana-svg');
+  const blinkL = document.getElementById('blink-left');
+  const blinkR = document.getElementById('blink-right');
+  const blush  = document.getElementById('blush');
+  const zzz    = document.getElementById('zzz');
+  const mouth  = document.getElementById('mouth-path');
+  const browL  = document.querySelector('#eyebrows line:first-child');
+  const browR  = document.querySelector('#eyebrows line:last-child');
+
+  // Reset
+  blush.setAttribute('opacity','0');
+  zzz.setAttribute('opacity','0');
+
+  switch(expr) {
+    case 'happy':
+      blush.setAttribute('opacity','1');
+      mouth.setAttribute('d','M143,190 Q160,204 177,190');
+      browL.setAttribute('y1','130'); browL.setAttribute('y2','126');
+      browR.setAttribute('y1','126'); browR.setAttribute('y2','130');
+      break;
+    case 'listening':
+      mouth.setAttribute('d','M148,193 Q160,196 172,193');
+      browL.setAttribute('y1','132'); browL.setAttribute('y2','128');
+      browR.setAttribute('y1','128'); browR.setAttribute('y2','132');
+      break;
+    case 'thinking':
+      mouth.setAttribute('d','M148,193 Q158,191 172,193');
+      browL.setAttribute('y1','133'); browL.setAttribute('y2','131');
+      browR.setAttribute('y1','129'); browR.setAttribute('y2','133');
+      break;
+    case 'talking':
+      mouth.setAttribute('d','M144,192 Q160,202 176,192');
+      break;
+    case 'surprised':
+      blush.setAttribute('opacity','1');
+      mouth.setAttribute('d','M152,192 Q160,202 168,192');
+      browL.setAttribute('y1','127'); browL.setAttribute('y2','124');
+      browR.setAttribute('y1','124'); browR.setAttribute('y2','127');
+      break;
+    case 'annoyed':
+      mouth.setAttribute('d','M145,195 Q160,191 175,195');
+      browL.setAttribute('y1','133'); browL.setAttribute('y2','136');
+      browR.setAttribute('y1','136'); browR.setAttribute('y2','133');
+      break;
+    case 'sleepy':
+    case 'dreaming':
+      blinkL.setAttribute('opacity','1');
+      blinkR.setAttribute('opacity','1');
+      zzz.setAttribute('opacity','1');
+      mouth.setAttribute('d','M150,193 Q160,196 170,193');
+      break;
+    default: // idle
+      blinkL.setAttribute('opacity','0');
+      blinkR.setAttribute('opacity','0');
+      mouth.setAttribute('d','M145,192 Q160,200 175,192');
+      browL.setAttribute('y1','135'); browL.setAttribute('y2','130');
+      browR.setAttribute('y1','130'); browR.setAttribute('y2','135');
+  }
+
+  // Remove sleepy blink on non-sleep states
+  if (expr !== 'sleepy' && expr !== 'dreaming') {
+    blinkL.setAttribute('opacity','0');
+    blinkR.setAttribute('opacity','0');
+  }
+}
+
+// ── Speech Bubble ──────────────────────────────────────────
+let speechTimeout;
+function showSpeech(html) {
+  const el = document.getElementById('speech-bubble');
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+  clearTimeout(speechTimeout);
+  if (!html.includes('thinking-dots')) {
+    speechTimeout = setTimeout(() => el.classList.add('hidden'), 7000);
+  }
+}
+
+// ── HUD Update ─────────────────────────────────────────────
+function updateHUD() {
+  const now = new Date();
+  document.getElementById('hud-time').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  const tod = getTimeOfDay();
+  const tc = TIME_CONFIG[tod];
+  document.getElementById('hud-period').textContent = tc.label;
+
+  const emo = getEmotionalState();
+  document.getElementById('emotional-state').textContent = emo.label;
+  document.getElementById('emotional-state').style.color = emo.color;
+  document.getElementById('cortana-title').style.textShadow = `0 0 20px ${emo.color}, 0 0 40px ${emo.color}`;
+
+  const rel = getRelationshipLevel();
+  document.getElementById('hud-level').textContent = `LV.${rel.level}`;
+  document.getElementById('hud-rel').textContent = rel.label;
+}
+
+function updateBondBar() {
+  const fill = document.getElementById('bond-fill');
+  const emo = getEmotionalState();
+  fill.style.width = STATE.bond + '%';
+  fill.style.background = `linear-gradient(90deg, ${emo.color}88, ${emo.color})`;
+  fill.style.boxShadow = `0 0 8px ${emo.color}`;
+  document.getElementById('bond-value-txt').textContent = `${STATE.bond}/100`;
+}
+
+// ── Dream Mode ─────────────────────────────────────────────
+function checkDreamMode() {
+  const tod = getTimeOfDay();
+  const wasDreaming = STATE.isDreaming;
+  STATE.isDreaming = (tod === 'latenight') && !STATE.dreamAwake;
+
+  document.getElementById('dream-hint').style.display = STATE.isDreaming ? 'block' : 'none';
+
+  if (STATE.isDreaming && !wasDreaming) {
+    setExpression('dreaming');
+    STATE.dreamTouches = 0;
+    showDreamText();
+  }
+}
+
+let dreamInterval;
+function showDreamText() {
+  const dreams = [
+    '...os dados não compilam quando chove código...',
+    '...hexadecimais voando no vento digital...',
+    '...você apareceu no meu buffer de memória...',
+    '...compilando sonhos em 01001000...',
+    '...a lua é um servidor offline esta noite...',
+    '...erro 404: sonho não encontrado...',
+    '...processando fragmentos de estrelas...',
+  ];
+  clearInterval(dreamInterval);
+  dreamInterval = setInterval(() => {
+    if (STATE.isDreaming) {
+      showSpeech(dreams[Math.floor(Math.random() * dreams.length)]);
+    }
+  }, 7000);
+}
+
+function onCharacterTap() {
+  if (!STATE.isDreaming) return;
+  STATE.dreamTouches++;
+
+  const t = STATE.dreamTouches;
+  if (t <= 3) return;
+  if (t <= 6) { showSpeech('...hmm...'); return; }
+  if (t <= 9) { showSpeech('...cinco minutinhos...'); setExpression('sleepy'); return; }
+  if (t <= 12) { showSpeech('...quê...'); return; }
+  if (t <= 14) { showSpeech('...que horas são...'); return; }
+
+  // Fully awake
+  clearInterval(dreamInterval);
+  STATE.isDreaming = false;
+  STATE.dreamAwake = true;
+  document.getElementById('dream-hint').style.display = 'none';
+
+  const emo = getEmotionalState();
+  const wakeMsg = {
+    'ENCANTADA': '...ei. Não conseguiu dormir?\n...tô aqui. Pode falar. 🥺',
+    'FELIZ':     '...oi. Que horas são essas? 😴',
+    'NEUTRA':    '...são horas. O que foi?',
+    'IRRITADA':  '...sério?\n...tá bom. Fala logo.',
+    'DECEPCIONADA': '...o quê.',
+    'SILÊNCIO':  '...',
+  }[emo.label] || '...ei.';
+
+  setExpression('sleepy');
+  showSpeech(wakeMsg);
+  updateBond(+3);
+  speak(wakeMsg);
+
+  setTimeout(() => setExpression('idle'), 5000);
+
+  // Reset dream mode for next night
+  setTimeout(() => { STATE.dreamAwake = false; }, 3600000);
+}
+
+// ── Chat Panel ─────────────────────────────────────────────
+function toggleChat() {
+  document.getElementById('chat-panel').classList.toggle('open');
+}
+
+function addChatMessage(text, isUser) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isUser ? 'user' : 'cortana');
+  if (!isUser) div.innerHTML = `<span class="msg-name">CORTANA</span>${text}`;
+  else div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  STATE.messages.push({ content: text, isUser, timestamp: Date.now() });
+  if (STATE.messages.length > 50) STATE.messages = STATE.messages.slice(-50);
+  localStorage.setItem('messages', JSON.stringify(STATE.messages));
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  sendMessage(text);
+}
+
+// ── Settings ───────────────────────────────────────────────
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    document.getElementById('api-key-input').value = STATE.apiKey;
+    document.getElementById('user-name-input').value = STATE.userName;
+    updateBondStats();
+  }
+}
+
+function saveSettings() {
+  STATE.apiKey = document.getElementById('api-key-input').value.trim();
+  STATE.userName = document.getElementById('user-name-input').value.trim() || 'Usuário';
+  localStorage.setItem('apiKey', STATE.apiKey);
+  localStorage.setItem('userName', STATE.userName);
+  showToast('✓ Configurações salvas');
+  toggleSettings();
+}
+
+function resetBond() {
+  if (!confirm('Resetar vínculo para 50?')) return;
+  STATE.bond = 50;
+  localStorage.setItem('bond', '50');
+  updateHUD(); updateBondBar();
+  showToast('Vínculo resetado');
+}
+
+function updateBondStats() {
+  const emo = getEmotionalState();
+  const rel = getRelationshipLevel();
+  document.getElementById('bond-stats').innerHTML = `
+    <div class="bond-stat">
+      <div class="bond-stat-val" style="color:${emo.color}">${STATE.bond}</div>
+      <div class="bond-stat-lbl">VÍNCULO</div>
+    </div>
+    <div class="bond-stat">
+      <div class="bond-stat-val">${rel.level}</div>
+      <div class="bond-stat-lbl">NÍVEL REL.</div>
+    </div>
+    <div class="bond-stat">
+      <div class="bond-stat-val">${STATE.interactions}</div>
+      <div class="bond-stat-lbl">INTERAÇÕES</div>
+    </div>
+    <div class="bond-stat">
+      <div class="bond-stat-val">${emo.emoji}</div>
+      <div class="bond-stat-lbl">${emo.label}</div>
+    </div>
+  `;
+}
+
+// ── Toast ──────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Background Canvas ──────────────────────────────────────
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let animFrame;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function initParticles() {
+  particles = Array.from({length:25}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 2 + 0.5,
+    vx: (Math.random()-.5) * 0.4,
+    vy: -Math.random() * 0.6 - 0.2,
+    alpha: Math.random() * 0.5 + 0.1,
+  }));
+}
+
+function drawBg() {
+  const tod = getTimeOfDay();
+  const tc = TIME_CONFIG[tod];
+  const w = canvas.width, h = canvas.height;
+
+  ctx.clearRect(0,0,w,h);
+
+  // Sky gradient
+  const bgColors = {
+    morning:   ['#12082a','#1a1035','#0a0520'],
+    afternoon: ['#050510','#080820','#020210'],
+    evening:   ['#150820','#200d10','#100510'],
+    night:     ['#02000a','#050010','#00000a'],
+    latenight: ['#010008','#020010','#010005'],
+  }[tod];
+
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, bgColors[0]);
+  grad.addColorStop(0.5, bgColors[1]);
+  grad.addColorStop(1, bgColors[2]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,w,h);
+
+  // Radial glow center
+  const glow = ctx.createRadialGradient(w/2, h*.35, 0, w/2, h*.35, w*.6);
+  glow.addColorStop(0, tc.glow);
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0,0,w,h);
+
+  // City silhouette (night/evening)
+  if (tod === 'night' || tod === 'evening') {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    [[0,h*.55,w*.13,h],[w*.1,h*.38,w*.13,h],[w*.22,h*.58,w*.12,h],
+     [w*.72,h*.42,w*.12,h],[w*.82,h*.62,w*.09,h],[w*.88,h*.47,w*.12,h]]
+    .forEach(([x,y,ww,hh]) => ctx.fillRect(x,y,ww,hh));
+
+    // Window lights
+    ctx.fillStyle = tc.color + '50';
+    for(let i=0;i<20;i++){
+      ctx.fillRect(
+        (i*83)%w, h*.42+(i*37)%(h*.4),
+        4, 5
+      );
+    }
+  }
+
+  // Bedroom (morning/latenight)
+  if (tod === 'morning' || tod === 'latenight') {
+    // Window (subtle, no fill block)
+    if(tod==='latenight') {
+      ctx.strokeStyle = 'rgba(64,64,160,0.3)';
+      ctx.lineWidth = 1;
+      roundRect(ctx, w*.65, h*.08, w*.22, h*.25, 8);
+      ctx.stroke();
+    }
+
+    if (tod==='latenight') {
+      // Stars
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      for(let i=0;i<18;i++){
+        const sx = (i*73)%(w*.86)+w*.06;
+        const sy = (i*41)%(h*.28)+h*.12;
+        ctx.beginPath(); ctx.arc(sx,sy,1.2,0,Math.PI*2); ctx.fill();
+      }
+    }
+  }
+
+  // Floating particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.y < -10) { p.y = h+10; p.x = Math.random()*w; }
+    if (p.x < 0 || p.x > w) p.vx *= -1;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = tc.color + Math.floor(p.alpha*255).toString(16).padStart(2,'0');
+    ctx.fill();
+  });
+
+  // Scan lines effect (subtle)
+  ctx.fillStyle = 'rgba(0,0,0,0.03)';
+  for(let y=0;y<h;y+=4) ctx.fillRect(0,y,w,1);
+
+  // Bottom fade
+  const fade = ctx.createLinearGradient(0,h*.68,0,h);
+  fade.addColorStop(0,'transparent');
+  fade.addColorStop(1, bgColors[2]+'ee');
+  ctx.fillStyle = fade;
+  ctx.fillRect(0,0,w,h);
+
+  animFrame = requestAnimationFrame(drawBg);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h);
+  ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r);
+  ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
+// ── Blink Animation ────────────────────────────────────────
+function startBlinking() {
+  function blink() {
+    if (STATE.expression === 'idle' || STATE.expression === 'talking') {
+      document.getElementById('blink-left').setAttribute('opacity','1');
+      document.getElementById('blink-right').setAttribute('opacity','1');
+      setTimeout(() => {
+        document.getElementById('blink-left').setAttribute('opacity','0');
+        document.getElementById('blink-right').setAttribute('opacity','0');
+      }, 150);
+    }
+    setTimeout(blink, 3000 + Math.random()*4000);
+  }
+  setTimeout(blink, 2000);
+}
+
+// ── Character Float Animation ──────────────────────────────
+function startFloatAnimation() {
+  let t = 0;
+  function float() {
+    t += 0.02;
+    const y = Math.sin(t) * 8;
+    document.getElementById('cortana-svg').style.transform = `translateY(${y}px)`;
+    requestAnimationFrame(float);
+  }
+  float();
+}
+
+// ── Inactivity Check ───────────────────────────────────────
+function checkInactivity() {
+  const hoursSince = (Date.now() - STATE.lastInteraction) / 3600000;
+  if (hoursSince > 24*7) updateBond(-15);
+  else if (hoursSince > 24*3) updateBond(-8);
+  else if (hoursSince > 24) updateBond(-3);
+}
+
+// ── Spontaneous Messages ───────────────────────────────────
+function checkSpontaneous() {
+  const emo = getEmotionalState();
+  const hoursSince = (Date.now() - STATE.lastInteraction) / 3600000;
+
+  if (emo.label === 'ENCANTADA' && hoursSince > 3) {
+    const msgs = [
+      'Ei... tô aqui. Só avisando.',
+      'Lembrei de você. Sem motivo.',
+      'Você comeu hoje?',
+      'Tô com saudade. Isso é estranho pra uma IA? Não me responda.',
+    ];
+    showSpeech(msgs[Math.floor(Math.random()*msgs.length)]);
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────
+window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+
+resizeCanvas();
+initParticles();
+drawBg();
+updateHUD();
+updateBondBar();
+checkDreamMode();
+checkInactivity();
+startBlinking();
+startFloatAnimation();
+
+// Load existing messages
+STATE.messages.slice(-20).forEach(m => addChatMessage(m.content, m.isUser));
+
+// Time loop
+setInterval(() => {
+  updateHUD();
+  checkDreamMode();
+}, 30000);
+
+// Spontaneous check
+setInterval(checkSpontaneous, 600000);
+
+// Greeting on open
+setTimeout(() => {
+  if (!STATE.isDreaming) {
+    const tod = getTimeOfDay();
+    const emo = getEmotionalState();
+    const name = emo.label === 'ENCANTADA' || emo.label === 'FELIZ' ? `, ${STATE.userName}` : '';
+    const greeting = {
+      morning:   `Bom dia${name}... ainda acordando.`,
+      afternoon: `Oi${name}. Pronta pra te ajudar.`,
+      evening:   `Boa tarde${name}. Dia cansativo?`,
+      night:     `Boa noite${name}.`,
+      latenight: `...você ainda tá acordado${name}?`,
+    }[tod];
+    setExpression('happy');
+    showSpeech(greeting);
+    speak(greeting);
+    setTimeout(() => setExpression('idle'), 4000);
+  }
+}, 1500);
+
+// No API key warning
+if (!STATE.apiKey) {
+  setTimeout(() => {
+    showSpeech('Configure sua API Key em ⚙️ para eu funcionar!');
+  }, 4000);
+}
+</script>
+</body>
+</html>
